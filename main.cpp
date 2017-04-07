@@ -21,7 +21,7 @@ const float ratio_Lowe = 0.8f; // As in Lowe's paper; can be tuned
 const int X_RES = 512;
 const int Y_RES = 640;
 const int GOOD_PORTION = 10;
-const String dataset_location = "/Users/Hassan/Workspace/OpenCV/Dataset/BigBird/";
+const String dataset_location = "/media/hassan/myPassport/Dataset/BigBIRD/";
 const String dataset_type = ".jpg";
 //const int GOOD_PTS_MAX = 50;
 int64 work_begin = 0;
@@ -83,7 +83,7 @@ struct SURFMatcher
 */
 struct FirstColumnOnlyCmp
 {
-    bool operator()(const std::vector<int>& lhs, 
+    bool operator()(const std::vector<int>& lhs,
                     const std::vector<int>& rhs) const
     {
         return lhs[1] > rhs[1];
@@ -194,13 +194,13 @@ Mat findGoodMatches(
     {
         if (matches[i][0].distance < ratio_Lowe * matches[i][1].distance)
         {
-            DMatch forward = matches[i][0]; 
-            DMatch backward = backward_matches[forward.trainIdx]; 
+            DMatch forward = matches[i][0];
+            DMatch backward = backward_matches[forward.trainIdx];
             if(backward.trainIdx == forward.queryIdx)
             {
                 good_matches.push_back(forward);
             }
-            
+
         }
         //good_matches.push_back( matches[i][0] );
         //good_matches.push_back( matches[i] );
@@ -229,8 +229,8 @@ Mat findGoodMatches(
     std::vector<std::vector<Point> > contours;
     std::vector<Vec4i> hierarchy;
     Mat H;
-    if (obj.size() > 0) 
-    {    
+    if (obj.size() > 0)
+    {
         //-- Get the corners from the image_1 ( the object to be "detected" )
         int max_x = 0;
         int min_x = 5000;//works as infinity for such image sizes
@@ -267,7 +267,7 @@ Mat findGoodMatches(
 
         //std::cout << H << ": Not a proper match. " << good_matches.size() << std::endl;
 
-        if (countNonZero(H) < 1) 
+        if (countNonZero(H) < 1)
         {
             std::cout << outputCounter++<< ": Not a proper match. " << selected_matches.size() << std::endl;
         }
@@ -315,12 +315,12 @@ Mat findGoodMatches(
 
             if (selected_matches.size() > 0)
             {
-                std::cout << outputCounter++<< ": A proper match. " << selected_matches.size()  << std::endl;               
+                std::cout << outputCounter++<< ": A proper match. " << selected_matches.size()  << std::endl;
             }
             else
             {
                 std::cout << outputCounter++<< ": Not a proper match. " << selected_matches.size()  << std::endl;
-            } 
+            }
         }
     }
     else
@@ -393,19 +393,19 @@ int main(int argc, char* argv[])
         descriptors2 = _descriptors2.getMat(ACCESS_RW);
 
     //instantiate detectors/matchers
-    SURFDetector surf;    
+    SURFDetector surf;
     //SIFTDetector sift;
 
     //SURFMatcher<BFMatcher> matcher;
     BFMatcher matcher;
-    
-    
+
+
     surf(img1.getMat(ACCESS_READ), Mat(), keypoints1, descriptors1);
     //sift(img1.getMat(ACCESS_READ), Mat(), keypoints1, descriptors1);
 
-    String dscspath = "/Users/Hassan/Workspace/OpenCV/Dataset/db/Desciptors.xml";
-    String kptspath = "/Users/Hassan/Workspace/OpenCV/Dataset/db/Keypoints.xml";
-    String idspath = "/Users/Hassan/Workspace/OpenCV/Dataset/db/Mapping_IDs.xml";
+    String dscspath = "/media/hassan/myPassport/Dataset/db/Desciptors.xml";
+    String kptspath = "/media/hassan/myPassport/Dataset/db/Keypoints.xml";
+    String idspath = "/media/hassan/myPassport/Dataset/db/Mapping_IDs.xml";
 
     FileStorage dscs(dscspath, cv::FileStorage::READ);
     FileStorage kpts(kptspath, cv::FileStorage::READ);
@@ -430,15 +430,15 @@ int main(int argc, char* argv[])
         dscs[filename] >> descriptors2;
         ids[filename] >> curr_img;
         std::cout << curr_img << " -> ";
-        
+
         //std::vector<DMatch> matches;
         matcher.knnMatch(descriptors1, descriptors2, matches, 2);// Find two nearest matches
         matcher.match(descriptors2, descriptors1, backward_matches);
-        
+
         std::vector<DMatch> selected_matches;
 
         hMatrices.push_back( findGoodMatches(cols, rows, keypoints1, keypoints2, matches, backward_matches, selected_matches) );
-        
+
         final_matches.push_back(selected_matches);
         matchesFound = selected_matches.size();
 
@@ -449,14 +449,14 @@ int main(int argc, char* argv[])
         currentItem.push_back(i);
         currentItem.push_back(matchesFound); //rank
         ranked_IDs.push_back(currentItem);
-        
+
         matches.clear();
         backward_matches.clear();
         selected_matches.clear();
         keypoints2.clear();
         descriptors2.release();
     }
-    
+
     dscs.release();
     std::cout << std::endl;
 
@@ -475,7 +475,7 @@ int main(int argc, char* argv[])
         currRank = ranked_IDs[i][1];
         currMatches = final_matches[currID - 1];    //minus 1 because IDs start at 1 while index start at 0
         currH = hMatrices[currID - 1];              //minus 1 because IDs start at 1 while index start at 0
-        
+
         cv::String idValue = std::to_string(currID);
         cv::String filename = "node_" + idValue;
         kpts[filename] >> keypoints2;
@@ -485,13 +485,13 @@ int main(int argc, char* argv[])
 
         currFitnessScore = (double)currMatches.size()/ (double)keypoints2.size();
         std::cout << curr_img << " -> "<< currFitnessScore << std::endl << "H = " << std::endl << currH << std::endl << std::endl;
-        
+
         //write image to disk
         Mat img_matches = drawGoodMatches(keypoints1, keypoints2, img1.getMat(ACCESS_READ), img2.getMat(ACCESS_READ), currMatches);
         while(img_matches.empty()){};
 
 
-        //TODO: compute transform matrix and print 
+        //TODO: compute transform matrix and print
 
         //maybe do this part here to penaltilize non horizontals in drawGoodMatches??
         //currFitnessScore = (double)currMatches.size()/ (double)keypoints2.size();
