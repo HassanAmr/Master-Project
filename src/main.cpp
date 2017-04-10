@@ -21,8 +21,7 @@ const float ratio_Lowe = 0.8f; // As in Lowe's paper; can be tuned
 const int X_RES = 512;
 const int Y_RES = 640;
 const int GOOD_PORTION = 10;
-const String dataset_location = "/media/hassan/myPassport/Dataset/BigBIRD/";
-const String dataset_type = ".jpg";
+
 //const int GOOD_PTS_MAX = 50;
 int64 work_begin = 0;
 int64 work_end = 0;
@@ -205,7 +204,7 @@ Mat findGoodMatches(
         //good_matches.push_back( matches[i][0] );
         //good_matches.push_back( matches[i] );
     }
-    std::cout<<good_matches.size() << "    ";
+    //std::cout<<good_matches.size() << "    ";
     //std::cout << "\nMax distance: " << maxDist << std::endl;
     //std::cout << "Min distance: " << minDist << std::endl;
 
@@ -269,7 +268,7 @@ Mat findGoodMatches(
 
         if (countNonZero(H) < 1)
         {
-            std::cout << outputCounter++<< ": Not a proper match. " << selected_matches.size() << std::endl;
+            //std::cout << outputCounter++<< ": Not a proper match. " << selected_matches.size() << std::endl;
         }
         else
         {
@@ -312,20 +311,20 @@ Mat findGoodMatches(
                     }
                 }
             }
-
+            
             if (selected_matches.size() > 0)
             {
-                std::cout << outputCounter++<< ": A proper match. " << selected_matches.size()  << std::endl;
+                //std::cout << outputCounter++<< ": A proper match. " << selected_matches.size()  << std::endl;
             }
             else
             {
-                std::cout << outputCounter++<< ": Not a proper match. " << selected_matches.size()  << std::endl;
+                //std::cout << outputCounter++<< ": Not a proper match. " << selected_matches.size()  << std::endl;
             }
         }
     }
     else
     {
-        std::cout << outputCounter++<< ": Not a proper match. " << selected_matches.size()  << std::endl;
+        //std::cout << outputCounter++<< ": Not a proper match. " << selected_matches.size()  << std::endl;
     }
     return H;
 }
@@ -335,6 +334,7 @@ Mat findGoodMatches(
 // use cpu findHomography interface to calculate the transformation matrix
 int main(int argc, char* argv[])
 {
+    /*
     const char* keys =
         "{ h help     |                  | print help message  }"
         "{ t test     | test.jpg          | specify left image  }"
@@ -353,17 +353,41 @@ int main(int argc, char* argv[])
         ocl::setUseOpenCL(false);
         std::cout << "OpenCL was disabled" << std::endl;
     }
+    */
+
+    String testName, db_location, dataset_location;//  "/media/hassan/myPassport/Dataset/BigBIRD/";
+    const String dataset_type = ".jpg"; //TODO: maybe set it as argument later
+    //String db_location = "/media/hassan/myPassport/Dataset/db/";
+    if (argc > 3)
+    {
+        testName = argv[1];
+        db_location = argv[2];
+        dataset_location = argv[3];
+        if (argc > 4)
+        {
+            printf("Too many arguments.\n\nPlease enter: \n\t1. The location of the query image\n\t2. The path of the db\n\t3. The location of the image files\n\n");
+            return 1;
+        }
+    }
+    else
+    {
+      printf("Too few arguments.\n\nPlease enter: \n\t1. The location of the query image\n\t2. The path of the db\n\t3. The location of the image files\n\n");
+      return 1;
+    }
+
+
 
     UMat img1, queryImg;
 
-    std::string testName = cmd.get<std::string>("t");
-    std::cout << "Test = " <<testName<< std::endl;
+    //std::string testName = cmd.get<std::string>("t");
+    //std::cout << "Test = " <<testName<< std::endl;
 
     imread(testName, CV_LOAD_IMAGE_GRAYSCALE).copyTo(queryImg);
     if(queryImg.empty())
     {
         std::cout << "Couldn't load " << testName << std::endl;
-        cmd.printMessage();
+        //cmd.printMessage();
+        printf("Wrong input arguments.\n\nPlease enter: \n\t1. The location of the query image\n\t2. The path of the db\n\t3. The location of the image files\n\n");
         return EXIT_FAILURE;
     }
 
@@ -403,13 +427,17 @@ int main(int argc, char* argv[])
     surf(img1.getMat(ACCESS_READ), Mat(), keypoints1, descriptors1);
     //sift(img1.getMat(ACCESS_READ), Mat(), keypoints1, descriptors1);
 
-    String dscspath = "/media/hassan/myPassport/Dataset/db/Desciptors.xml";
-    String kptspath = "/media/hassan/myPassport/Dataset/db/Keypoints.xml";
-    String idspath = "/media/hassan/myPassport/Dataset/db/Mapping_IDs.xml";
+    String dscspath = db_location + "Desciptors.xml";
+    String kptspath = db_location + "KeyPoints.xml";
+    String idspath = db_location + "Mapping_IDs.xml";
 
     FileStorage dscs(dscspath, cv::FileStorage::READ);
     FileStorage kpts(kptspath, cv::FileStorage::READ);
     FileStorage ids(idspath, cv::FileStorage::READ);
+
+    //std::cout << "db_location:"<< std::endl<<dscspath << std::endl << kptspath << std::endl<<idspath<<std::endl;
+
+    //std::cout << "files_location: " << std::endl << dataset_location <<std::endl;
 
     int matchesFound = 0;
 
@@ -419,17 +447,23 @@ int main(int argc, char* argv[])
     std::vector< std::vector<int> > ranked_IDs;
     int cols = img1.cols;
     int rows = img1.rows;
+
+
+    //Fetching data for the first iteration
+    int index = 1;
     String curr_img;
-    for (int i = 1; i <= 600; i++)
+    String indexValue = std::to_string(index);
+    String filename = "node_" + indexValue;
+    ids[filename] >> curr_img;
+    kpts[filename] >> keypoints2;
+    dscs[filename] >> descriptors2;
+        //for (int i = 1; i <= 5400; i++)
+    while (curr_img != "")
     {
         //load descriptors2
         //surf(img2.getMat(ACCESS_READ), Mat(), keypoints2, descriptors2);
-        cv::String iValue = std::to_string(i);
-        cv::String filename = "node_" + iValue;
-        kpts[filename] >> keypoints2;
-        dscs[filename] >> descriptors2;
-        ids[filename] >> curr_img;
-        std::cout << curr_img << " -> ";
+
+        //std::cout << curr_img << " -> ";
 
         //std::vector<DMatch> matches;
         matcher.knnMatch(descriptors1, descriptors2, matches, 2);// Find two nearest matches
@@ -446,7 +480,7 @@ int main(int argc, char* argv[])
         //push to this data structure
         //after this loop, this data structure should be sorted in descending order, and the selected amount should be filtered from it (top 10 for example).
         std::vector<int> currentItem;
-        currentItem.push_back(i);
+        currentItem.push_back(index);
         currentItem.push_back(matchesFound); //rank
         ranked_IDs.push_back(currentItem);
 
@@ -455,10 +489,26 @@ int main(int argc, char* argv[])
         selected_matches.clear();
         keypoints2.clear();
         descriptors2.release();
+
+
+        //Fetching data for the next iteration
+        index++;
+        curr_img = "";
+        String indexValue = std::to_string(index);
+        String filename = "node_" + indexValue;
+        ids[filename] >> curr_img;
+        kpts[filename] >> keypoints2;
+        dscs[filename] >> descriptors2;
     }
 
+    //descriports are not needed anymore after this point
     dscs.release();
+    
+
+
+    //start formating the output
     std::cout << std::endl;
+    std::cout <<index - 1 << std::endl;
 
     //-- Sort matches and preserve top 10% matches
     //std::sort(matches.begin(), matches.end());
@@ -481,6 +531,7 @@ int main(int argc, char* argv[])
         kpts[filename] >> keypoints2;
         ids[filename] >> curr_img;
         input_file = dataset_location + curr_img + dataset_type;
+        std::cout<<input_file<<std::endl;
         imread(input_file, CV_LOAD_IMAGE_GRAYSCALE).copyTo(img2);//get corresponding image
 
         currFitnessScore = (double)currMatches.size()/ (double)keypoints2.size();
