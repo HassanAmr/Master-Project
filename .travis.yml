@@ -40,6 +40,5 @@ install:
   - cd ../../
 
 script:
-  - cd [project_dir]
   - cmake .
   - make
