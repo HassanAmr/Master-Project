@@ -330,6 +330,9 @@ Mat findGoodMatches(
                 }
 
                 F = findFundamentalMat(queryPoints, refPoints, CV_FM_8POINT);
+                hconcat(H, F, M);
+                return M;
+
                 //std::cout << outputCounter++<< ": A proper match. " << selected_matches.size()  << std::endl;
                 
             }
@@ -344,8 +347,7 @@ Mat findGoodMatches(
         //std::cout << outputCounter++<< ": Not a proper match. " << selected_matches.size()  << std::endl;
     }
 
-    hconcat(H, F, M);
-    return M;
+    return H;
 }
 
 ////////////////////////////////////////////////////
@@ -427,9 +429,9 @@ int main(int argc, char* argv[])
 
     pMOG2->apply(backImg, fgMaskMOG2);
     pMOG2->apply(queryImg, fgMaskMOG2);
+    //const Mat mask = fgMaskMOG2;
 
-
-    imwrite("output/bg.jpg", fgMaskMOG2);
+    imwrite("output/bg_subtraction.jpg", fgMaskMOG2);
 
     //crop scrImg into img1
     // Setup a rectangle to define your region of interest
@@ -444,6 +446,8 @@ int main(int argc, char* argv[])
 
     // Crop the full image to that image contained by the rectangle myROI
     // Note that this doesn't copy the data
+    //queryImg.copyTo(img1);
+    //resize(queryImg, img1, Size(640, 512), 0, 0, INTER_AREA); 
     img1 = queryImg(myROI);
 
 
@@ -505,7 +509,6 @@ int main(int argc, char* argv[])
         //surf(img2.getMat(ACCESS_READ), Mat(), keypoints2, descriptors2);
 
         //std::cout << curr_img << " -> ";
-
         //std::vector<DMatch> matches;
         matcher.knnMatch(descriptors1, descriptors2, matches, 2);// Find two nearest matches
         matcher.match(descriptors2, descriptors1, backward_matches);
@@ -576,7 +579,7 @@ int main(int argc, char* argv[])
         imread(input_file, CV_LOAD_IMAGE_GRAYSCALE).copyTo(img2);//get corresponding image
 
         currFitnessScore = (double)currMatches.size()/ (double)keypoints2.size();
-        std::cout << curr_img << " -> "<< currFitnessScore << std::endl << "H = " << std::endl << currH << std::endl << std::endl;
+        std::cout << curr_img << " -> "<< currFitnessScore << std::endl << "H | F = " << std::endl << currH << std::endl << std::endl;
 
         //write image to disk
         Mat img_matches = drawGoodMatches(keypoints1, keypoints2, img1.getMat(ACCESS_READ), img2.getMat(ACCESS_READ), currMatches);
