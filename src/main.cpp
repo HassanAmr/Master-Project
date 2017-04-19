@@ -79,8 +79,8 @@ int main( int argc, char** argv )
     int l,k;
     //#pragma omp parallel default(shared) private(l, k)
     
-    #pragma omp parallel for private(l, k, patternfound, corners)
-
+    //#pragma omp parallel for private(patternfound, corners)
+    Size patternsize;//this is just a dummy declaration because it is only declared inside a loop, and the compiler doesn't like it
     for (size_t i=0; i<filenames.size(); i++)
     {
         //if (j > 0){
@@ -103,24 +103,28 @@ int main( int argc, char** argv )
           k = 7;
           while (!patternfound && k > 2) 
           {
-            Size patternsize(l,k);
+            patternsize.height = l;
+            patternsize.width = k;
             patternfound = findChessboardCorners(im, patternsize, corners,CALIB_CB_ADAPTIVE_THRESH + CALIB_CB_NORMALIZE_IMAGE);
             k--;
           }
           l--;
         }
 
-        if (patternfound)
-        {
-          patternfound = false;
-        }
-        else
+        if (!patternfound)
         {
           continue;
         }
 
+
         Mat dst;
         resize(im, dst, Size(640, 512), 0, 0, INTER_AREA); // resize to 640x512 resolution
+        
+        //std::cout<<patternsize<<std::endl;
+        drawChessboardCorners(dst, patternsize, corners, patternfound);
+
+        patternfound = false;
+
         std::ostringstream ss;
         ss <<outputPath <<SplitFilename(filenames[i]);
         String outputName = ss.str();
