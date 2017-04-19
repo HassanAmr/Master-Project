@@ -410,7 +410,8 @@ int main(int argc, char* argv[])
     //std::string testName = cmd.get<std::string>("t");
     //std::cout << "Test = " <<testName<< std::endl;
 
-    imread(backName, CV_LOAD_IMAGE_GRAYSCALE).copyTo(backImg);
+    //imread(backName, CV_LOAD_IMAGE_GRAYSCALE).copyTo(backImg);
+    resize(imread(backName, CV_LOAD_IMAGE_GRAYSCALE), backImg, Size(640, 512), 0, 0, INTER_AREA); 
     if(backImg.empty())
     {
         std::cout << "Couldn't load " << backName << std::endl;
@@ -418,7 +419,8 @@ int main(int argc, char* argv[])
         printf("Wrong input arguments.\n\nPlease enter: \n\t1. The location of the query image\n\t2. The path of the db\n\t3. The location of the image files\n\n");
         return EXIT_FAILURE;
     }
-    imread(queryName, CV_LOAD_IMAGE_GRAYSCALE).copyTo(queryImg);
+    //imread(queryName, CV_LOAD_IMAGE_GRAYSCALE).copyTo(queryImg);
+    resize(imread(queryName, CV_LOAD_IMAGE_GRAYSCALE), queryImg, Size(640, 512), 0, 0, INTER_AREA); 
     if(queryImg.empty())
     {
         std::cout << "Couldn't load " << queryName << std::endl;
@@ -446,9 +448,9 @@ int main(int argc, char* argv[])
 
     // Crop the full image to that image contained by the rectangle myROI
     // Note that this doesn't copy the data
-    //queryImg.copyTo(img1);
+    queryImg.copyTo(img1);
     //resize(queryImg, img1, Size(640, 512), 0, 0, INTER_AREA); 
-    img1 = queryImg(myROI);
+    //img1 = queryImg(myROI);
 
 
     //declare input/output
