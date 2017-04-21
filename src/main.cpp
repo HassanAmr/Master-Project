@@ -388,13 +388,13 @@ int main(int argc, char* argv[])
         dataset_location = argv[4];
         if (argc > 5)
         {
-            printf("Too many arguments.\n\nPlease enter: \n\t1. The location of the query image\n\t2. The path of the db\n\t3. The location of the image files\n\n");
+            printf("Too many arguments.\n\nPlease enter:\n\t1. The location of the background image\n\t2. The location of the query image\n\t2. The path of the db\n\t3. The location of the image files\n\n");
             return 1;
         }
     }
     else
     {
-      printf("Too few arguments.\n\nPlease enter: \n\t1. The location of the query image\n\t2. The path of the db\n\t3. The location of the image files\n\n");
+      printf("Too few arguments.\n\nPlease enter:\n\t1. The location of the background image\n\t2. The location of the query image\n\t2. The path of the db\n\t3. The location of the image files\n\n");
       return 1;
     }
 
@@ -416,7 +416,7 @@ int main(int argc, char* argv[])
     {
         std::cout << "Couldn't load " << backName << std::endl;
         //cmd.printMessage();
-        printf("Wrong input arguments.\n\nPlease enter: \n\t1. The location of the query image\n\t2. The path of the db\n\t3. The location of the image files\n\n");
+        printf("Wrong input arguments.\n\nPlease enter:\n\t1. The location of the background image\n\t2. The location of the query image\n\t2. The path of the db\n\t3. The location of the image files\n\n");
         return EXIT_FAILURE;
     }
     //imread(queryName, CV_LOAD_IMAGE_GRAYSCALE).copyTo(queryImg);
@@ -425,7 +425,7 @@ int main(int argc, char* argv[])
     {
         std::cout << "Couldn't load " << queryName << std::endl;
         //cmd.printMessage();
-        printf("Wrong input arguments.\n\nPlease enter: \n\t1. The location of the query image\n\t2. The path of the db\n\t3. The location of the image files\n\n");
+        printf("Wrong input arguments.\n\nPlease enter:\n\t1. The location of the background image\n\t2. The location of the query image\n\t2. The path of the db\n\t3. The location of the image files\n\n");
         return EXIT_FAILURE;
     }
 
@@ -506,7 +506,7 @@ int main(int argc, char* argv[])
         //for (int i = 1; i <= 5400; i++)
 
     //store the matrices in a file
-    FileStorage matrices("Matrices.xml", FileStorage::WRITE);
+    FileStorage matrices("output/Matrices.xml", FileStorage::WRITE);
 
 
     while (curr_img != "")
