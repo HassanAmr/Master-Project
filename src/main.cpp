@@ -505,6 +505,10 @@ int main(int argc, char* argv[])
     dscs[filename] >> descriptors2;
         //for (int i = 1; i <= 5400; i++)
 
+    //store the matrices in a file
+    FileStorage matrices("Matrices.xml", FileStorage::WRITE);
+
+
     while (curr_img != "")
     {
         //load descriptors2
@@ -518,6 +522,9 @@ int main(int argc, char* argv[])
         std::vector<DMatch> selected_matches;
 
         hMatrices.push_back( findGoodMatches(cols, rows, keypoints1, keypoints2, matches, backward_matches, selected_matches) );
+
+        matrices << curr_img.c_str() << hMatrices.back();
+
 
         final_matches.push_back(selected_matches);
         matchesFound = selected_matches.size();
@@ -547,7 +554,8 @@ int main(int argc, char* argv[])
         dscs[filename] >> descriptors2;
     }
 
-    //descriports are not needed anymore after this point
+    //descriports and matrices are not needed anymore after this point
+    matrices.release();
     dscs.release();
     
 
