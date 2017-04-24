@@ -25,25 +25,6 @@ const int X_RES = 512;
 const int Y_RES = 640;
 const int GOOD_PORTION = 10;
 
-//const int GOOD_PTS_MAX = 50;
-int64 work_begin = 0;
-int64 work_end = 0;
-
-static void workBegin()
-{
-    work_begin = getTickCount();
-}
-
-static void workEnd()
-{
-    work_end = getTickCount() - work_begin;
-}
-
-static double getTime()
-{
-    return work_end /((double)getTickFrequency() )* 1000.;
-}
-
 struct SURFDetector
 {
     Ptr<Feature2D> surf;
@@ -448,9 +429,9 @@ int main(int argc, char* argv[])
 
     // Crop the full image to that image contained by the rectangle myROI
     // Note that this doesn't copy the data
-    queryImg.copyTo(img1);
+    //queryImg.copyTo(img1);
     //resize(queryImg, img1, Size(640, 512), 0, 0, INTER_AREA); 
-    //img1 = queryImg(myROI);
+    img1 = queryImg(myROI);
 
 
     //declare input/output
