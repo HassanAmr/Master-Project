@@ -21,9 +21,15 @@ int outputCounter = 1;
 const float ratio_Lowe = 0.8f; // As in Lowe's paper; can be tuned
 
 //Always make sure this is accounted for
-const int X_RES = 512;
-const int Y_RES = 640;
+
+const int X_RES = 640;
+const int Y_RES = 512;
+
 const int GOOD_PORTION = 10;
+
+//junk delete later
+FileStorage f_verification("output/verification/F_verification.xml", FileStorage::WRITE);
+FileStorage e_verification("output/verification/E_verification.xml", FileStorage::WRITE);
 
 struct SURFDetector
 {
@@ -164,7 +170,8 @@ Mat findGoodMatches(
     const std::vector<KeyPoint>& keypoints2,
     std::vector< std::vector<DMatch> >& matches,
     std::vector<DMatch>& backward_matches,
-    std::vector<DMatch>& selected_matches
+    std::vector<DMatch>& selected_matches,
+    std::string currImgText
     )
 {
     //-- Sort matches and preserve top 10% matches
@@ -211,7 +218,7 @@ Mat findGoodMatches(
 
     std::vector<std::vector<Point> > contours;
     std::vector<Vec4i> hierarchy;
-    Mat H, F, M;
+    Mat H, M; //The matrices to be returned
     if (obj.size() > 0)
     {
         //-- Get the corners from the image_1 ( the object to be "detected" )
@@ -264,7 +271,7 @@ Mat findGoodMatches(
             //Mat drawing = Mat::zeros( img2.size(), img2.type() );
             //using searchImg since img2 is currently not available, and both are the same size.
             //later should be set to the region where the object surely is.
-            Mat drawing = Mat::zeros( Y_RES, X_RES, CV_8UC1);
+            Mat drawing = Mat::zeros( X_RES, Y_RES, CV_8UC1);
 
             line( drawing,
                 scene_corners[0], scene_corners[1],
@@ -298,36 +305,155 @@ Mat findGoodMatches(
             
             if (selected_matches.size() >= 8)
             {
-                
                 //-- Get the points corresponding to the selected matches
                 std::vector<Point2f> queryPoints;
                 std::vector<Point2f> refPoints;
 
-                for( size_t i = 0; i < selected_matches.size(); i++ )
+                for( int i = 0; i < selected_matches.size(); i++ )
                 {
                     //-- Get the keypoints from the good matches
                     queryPoints.push_back( keypoints1[ selected_matches[i].queryIdx ].pt );
                     refPoints.push_back( keypoints2[ selected_matches[i].trainIdx ].pt );
                 }
 
-                F = findFundamentalMat(queryPoints, refPoints, CV_FM_8POINT);
-                hconcat(H, F, M);
-                return M;
+                Mat F = findFundamentalMat(queryPoints, refPoints, CV_FM_8POINT);
 
-                //std::cout << outputCounter++<< ": A proper match. " << selected_matches.size()  << std::endl;
-                
+                std::vector<double> verifyValues;
+                for (int i = 0; i < selected_matches.size(); i++)
+                {
+                    /* code */
+                    Mat queryMatrix(queryPoints[i]);
+                    Mat refMatrix(refPoints[i]);
+                    queryMatrix.convertTo(queryMatrix,DataType<double>::type);
+                    refMatrix.convertTo(refMatrix,DataType<double>::type);
+                    Mat one = cv::Mat::ones(1, 1, DataType<double>::type);
+                    queryMatrix.push_back(one);
+                    refMatrix.push_back (one);
+
+                    Mat final = queryMatrix.t() * F * refMatrix;
+                    verifyValues.push_back(final.at<double>(0,0));
+                }
+
+                bool ok = false;
+                float acc_deviation = 0;
+                int cnt = 0;
+                for (int i = 0; i < selected_matches.size(); i++)
+                {
+                    acc_deviation += fabs(verifyValues[i]);
+                    if (fabs(verifyValues[i]) < 2)
+                    {
+                        ok = true;
+                        cnt ++;
+                    }
+                }
+
+                float u_deviation = acc_deviation/selected_matches.size();
+                if (ok)
+                {
+                    f_verification << currImgText<< ("Yes: " + std::to_string(cnt) + " out of " + std::to_string(selected_matches.size()) + " selected matches with a mean deviation of " + std::to_string(u_deviation) + " pixels");
+                }
+                else
+                {
+                    f_verification << currImgText<< "No";
+                }
+
+                Mat K1 = (Mat_<double>(3,3) << 1076.8879, 0.0, 312.05695, 0.0, 1076.8904, 244.55385, 0.0, 0.0, 1.0);
+                //Mat K2 = (Mat_<double>(3,3) << 538.44395, 0.0, 312.05695, 0.0, 538.4452, 244.55385, 0.0, 0.0, 1.0);
+                //Mat K1 = (Mat_<double>(3,3) << 538.44395, 0.0, 312.05695, 0.0, 538.4452, 244.55385, 0.0, 0.0, 0.5);
+                Mat W = (Mat_<double>(3,3) << 0, -1, 0, 1, 0, 0, 0, 0, 1);
+
+                Mat E = K1.t()* F * K1;
+                //K1 E = K1.t()* F * K2;
+                //Mat E = K2.t()* F * K1;
+
+                verifyValues.clear();
+                for (int i = 0; i < selected_matches.size(); i++)
+                {
+                    /* code */
+                    Mat queryMatrix(queryPoints[i]);
+                    Mat refMatrix(refPoints[i]);
+                    queryMatrix.convertTo(queryMatrix,DataType<double>::type);
+                    refMatrix.convertTo(refMatrix,DataType<double>::type);
+                    Mat one = cv::Mat::ones(1, 1, DataType<double>::type);
+                    queryMatrix.push_back(one);
+                    refMatrix.push_back (one);
+
+                    Mat final = queryMatrix.t() * E * refMatrix;
+                    verifyValues.push_back(final.at<double>(0,0));
+                }
+
+                ok = false;
+                acc_deviation = 0;
+                cnt = 0;
+                for (int i = 0; i < selected_matches.size(); i++)
+                {
+                    acc_deviation += fabs(verifyValues[i]);
+                    if (fabs(verifyValues[i]) < 2)
+                    {
+                        ok = true;
+                        cnt ++;
+                    }
+                }
+
+                u_deviation = acc_deviation/selected_matches.size();
+                if (ok)
+                {
+                    e_verification << currImgText<< ("Yes: " + std::to_string(cnt) + " out of " + std::to_string(selected_matches.size()) + " selected matches with a mean deviation of " + std::to_string(u_deviation) + " pixels");
+                }
+                else
+                {
+                    e_verification << currImgText<< "No";
+                }
+
+                SVD svd(E);
+                Mat R1 = svd.u *W * svd.vt;
+                Mat R2 = svd.u *W.t() * svd.vt;
+
+                //std::cout<< svd.u << std::endl<< svd.w <<std::endl<< svd.u.t()<<std::endl;
+                //Mat L = Mat::zeros(3, 3, CV_64F);
+                //L.at<double>(0,0) = svd.w.at<double>(0);
+                //L.at<double>(1,1) = svd.w.at<double>(1);
+                //L.at<double>(2,2) = svd.w.at<double>(2);
+                Mat u3(3, 1, DataType<double>::type);
+                u3.at<double>(0,0) = svd.u.at<double>(0,2);
+                u3.at<double>(1,0) = svd.u.at<double>(1,2);
+                u3.at<double>(2,0) = svd.u.at<double>(2,2);
+                double min, max;
+                minMaxLoc(u3, &min, &max);
+                max = std::max(fabs(min),max);
+                //std::cout<<svd.u<<std::endl;
+                //std::cout<<u3<<std::endl;
+                Mat T1(3, 1, DataType<double>::type);
+                Mat T2(3, 1, DataType<double>::type);
+                T1.at<double>(0,0) = u3.at<double>(0,0)/max;
+                T1.at<double>(1,0) = u3.at<double>(1,0)/max;
+                T1.at<double>(2,0) = u3.at<double>(2,0)/max;
+
+                T2.at<double>(0,0) = -1 * (u3.at<double>(0,0)/max);
+                T2.at<double>(1,0) = -1 * (u3.at<double>(1,0)/max);
+                T2.at<double>(2,0) = -1 * (u3.at<double>(2,0)/max);
+
+                //std::cout << L<<std::endl;
+                //Mat T = svd.u *L * W * svd.u.t();
+                Mat T;
+                hconcat(T1,T2, T);
+                Mat R;
+                hconcat(R1, R2, R);
+                Mat transformations;
+                hconcat(R, T, transformations);
+                Mat FE;
+                hconcat(F, E, FE);
+                //hconcat(H, T, M);
+                Mat misc;
+                hconcat(H, FE, misc);
+                hconcat(misc, transformations, M);
+                return M;
             }
-            //else
-            //{
-                //std::cout << outputCounter++<< ": Not a proper match. " << selected_matches.size()  << std::endl;
-            //}
         }
     }
-    else
-    {
-        //std::cout << outputCounter++<< ": Not a proper match. " << selected_matches.size()  << std::endl;
-    }
 
+    f_verification << currImgText<< "No";
+    e_verification << currImgText<< "No";
     return H;
 }
 
@@ -470,7 +596,7 @@ int main(int argc, char* argv[])
 
     std::vector< std::vector<DMatch> > final_matches;
 
-    std::vector<Mat> hMatrices;
+    std::vector<Mat> allMatrices;
     std::vector< std::vector<int> > ranked_IDs;
     int cols = img1.cols;
     int rows = img1.rows;
@@ -502,9 +628,9 @@ int main(int argc, char* argv[])
 
         std::vector<DMatch> selected_matches;
 
-        hMatrices.push_back( findGoodMatches(cols, rows, keypoints1, keypoints2, matches, backward_matches, selected_matches) );
+        allMatrices.push_back( findGoodMatches(cols, rows, keypoints1, keypoints2, matches, backward_matches, selected_matches,curr_img.c_str()) );
 
-        matrices << curr_img.c_str() << hMatrices.back();
+        matrices << curr_img.c_str() << allMatrices.back();
 
 
         final_matches.push_back(selected_matches);
@@ -538,6 +664,8 @@ int main(int argc, char* argv[])
     //descriports and matrices are not needed anymore after this point
     matrices.release();
     dscs.release();
+    f_verification.release();
+    e_verification.release();
     
 
 
@@ -550,7 +678,7 @@ int main(int argc, char* argv[])
     std::sort(ranked_IDs.begin(), ranked_IDs.end(), FirstColumnOnlyCmp());
     int currID, currRank;
     std::vector<DMatch> currMatches;
-    Mat currH;
+    Mat currM;
     UMat img2;
     String input_file, output_file;
     double currFitnessScore = 0.0;
@@ -559,7 +687,7 @@ int main(int argc, char* argv[])
         currID = ranked_IDs[i][0];
         currRank = ranked_IDs[i][1];
         currMatches = final_matches[currID - 1];    //minus 1 because IDs start at 1 while index start at 0
-        currH = hMatrices[currID - 1];              //minus 1 because IDs start at 1 while index start at 0
+        currM = allMatrices[currID - 1];              //minus 1 because IDs start at 1 while index start at 0
 
         cv::String idValue = std::to_string(currID);
         cv::String filename = "node_" + idValue;
@@ -569,8 +697,23 @@ int main(int argc, char* argv[])
         std::cout<<input_file<<std::endl;
         imread(input_file, CV_LOAD_IMAGE_GRAYSCALE).copyTo(img2);//get corresponding image
 
+        Mat H = Mat(currM,Rect(0,0,3,currM.rows));
+        Mat F = Mat(currM,Rect(3,0,3,currM.rows));
+        Mat E = Mat(currM,Rect(6,0,3,currM.rows));
+        Mat R = Mat(currM,Rect(9,0,6,currM.rows));
+        Mat T = Mat(currM,Rect(15,0,2,currM.rows));
         currFitnessScore = (double)currMatches.size()/ (double)keypoints2.size();
-        std::cout << curr_img << " -> "<< currFitnessScore << std::endl << "H | F = " << std::endl << currH << std::endl << std::endl;
+        std::cout << curr_img << " -> "<< currFitnessScore << std::endl
+        << "H = " << std::endl
+        <<  H << std::endl << std::endl
+        << "F = " << std::endl
+        <<  F << std::endl << std::endl
+        << "E = " << std::endl
+        <<  E << std::endl << std::endl
+        << "R = " << std::endl
+        <<  R << std::endl << std::endl
+        << "T = " << std::endl
+        <<  T << std::endl << std::endl;
 
         //write image to disk
         Mat img_matches = drawGoodMatches(keypoints1, keypoints2, img1.getMat(ACCESS_READ), img2.getMat(ACCESS_READ), currMatches);
