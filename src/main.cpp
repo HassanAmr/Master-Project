@@ -1,6 +1,5 @@
 #include <iostream>
 #include <stdio.h>
-#include <algorithm>
 #include "opencv2/core.hpp"
 #include "opencv2/core/utility.hpp"
 #include "opencv2/core/ocl.hpp"
