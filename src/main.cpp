@@ -532,9 +532,9 @@ int main(int argc, char* argv[])
 
     // Crop the full image to that image contained by the rectangle myROI
     // Note that this doesn't copy the data
-    //queryImg.copyTo(img1);
+    queryImg.copyTo(img1);
     //resize(queryImg, img1, Size(640, 512), 0, 0, INTER_AREA); 
-    img1 = queryImg(myROI);
+    //img1 = queryImg(myROI);
 
 
     //declare input/output
