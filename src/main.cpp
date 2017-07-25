@@ -12,13 +12,18 @@ using namespace cv;
 
 
 Mat src; Mat dst;
-char window_name1[] = "Unprocessed Image";
-char window_name2[] = "Processed Image";
+int markerBoxSize = 16;
 
 String SplitFilename (const std::string& str)
 {
   std::size_t found = str.find_last_of("/\\");
   return str.substr(found+1);
+}
+
+String RemoveFileExtension (const std::string& str)
+{
+  std::size_t lastindex = str.find_last_of("."); 
+  return str.substr(0, lastindex);
 }
 
 int main( int argc, char** argv )
@@ -74,11 +79,15 @@ int main( int argc, char** argv )
     }
     */
 
-    std::vector<Point2f> corners; //this will be filled by the detected corners
+    std::vector<Point2f> corners, marker; //this will be filled by the detected corners
     bool patternfound = false;
     int l,k;
     //#pragma omp parallel default(shared) private(l, k)
     
+    cv::String hMatrices_path = outputPath + "matrices/H_Matrices.xml";
+    std::cout <<hMatrices_path<< std::endl;
+
+    FileStorage hMatrices(hMatrices_path, FileStorage::WRITE);
     //#pragma omp parallel for private(patternfound, corners)
     Size patternsize;//this is just a dummy declaration because it is only declared inside a loop, and the compiler doesn't like it
     for (size_t i=0; i<filenames.size(); i++)
@@ -115,26 +124,82 @@ int main( int argc, char** argv )
         {
           continue;
         }
-
+        int x = 0;
+        int y = 0;
+        for (int  h = 0; h < patternsize.height; ++h)
+        {
+            for (int w = 0; w < patternsize.width; ++w)
+            {
+                Point2f p(w*markerBoxSize,h*markerBoxSize);
+                marker.push_back(p);
+            }
+            /* code */
+        }
+        
 
         Mat dst;
         resize(im, dst, Size(640, 512), 0, 0, INTER_AREA); // resize to 640x512 resolution
         
         //std::cout<<patternsize<<std::endl;
-        drawChessboardCorners(dst, patternsize, corners, patternfound);
 
-        patternfound = false;
-
+        cv::String fileNameStr = SplitFilename(filenames[i]);
         std::ostringstream ss;
-        ss <<outputPath <<SplitFilename(filenames[i]);
+        ss <<outputPath << "images/"<< fileNameStr;
         String outputName = ss.str();
 
         std::cout <<outputName<< std::endl;
 
         imwrite(outputName , dst);
-        //count++;
-        //j++;
 
+        drawChessboardCorners(dst, patternsize, corners, patternfound);
+        drawChessboardCorners(dst, patternsize, marker, patternfound);
+        patternfound = false;
+
+        std::ostringstream ss2;
+        ss2 <<outputPath << "annotation/"<< fileNameStr;
+        
+        String outputName2 = ss2.str();
+        //std::cout <<patternsize.height<< std::endl;
+        //std::cout <<patternsize.width<< std::endl;
+        
+
+        std::vector<Point2f> obj_corners(4);
+        std::vector<Point2f> scene_corners(4);
+
+
+        obj_corners[0] = Point(0,0);
+        obj_corners[1] = Point( (patternsize.width - 1) * markerBoxSize, 0 );
+        obj_corners[2] = Point( (patternsize.width - 1) * markerBoxSize, (patternsize.height - 1) * markerBoxSize );
+        obj_corners[3] = Point( 0, (patternsize.height - 1) * markerBoxSize );
+
+        Mat H = findHomography( marker, corners, RANSAC );
+        perspectiveTransform( obj_corners, scene_corners, H);
+
+        //-- Draw lines between the corners (the mapped object in the scene - image_2 )
+        line( dst,
+            scene_corners[0], scene_corners[1],
+            Scalar( 0, 255, 0), 2, LINE_AA );
+        line( dst,
+            scene_corners[1], scene_corners[2],
+            Scalar( 0, 255, 0), 2, LINE_AA );
+        line( dst,
+            scene_corners[2], scene_corners[3],
+            Scalar( 0, 255, 0), 2, LINE_AA );
+        line( dst,
+            scene_corners[3], scene_corners[0],
+            Scalar( 0, 255, 0), 2, LINE_AA );
+        //std::cout <<scene_corners<< std::endl;
+        imwrite(outputName2 , dst);
+
+        //std::cout << RemoveFileExtension(SplitFilename(filenames[i])).c_str() << std::endl;
+
+        hMatrices << RemoveFileExtension(fileNameStr).c_str() << H;
+        corners.clear();
+        marker.clear();
+        obj_corners.clear();
+        scene_corners.clear();
+        H.release();
     }
+    hMatrices.release();
     return 0;
 }
