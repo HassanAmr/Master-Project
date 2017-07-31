@@ -705,7 +705,7 @@ int main(int argc, char* argv[])
         currFitnessScore *= 100;
         cv::String fitnessValue = std::to_string(currFitnessScore);
         cv::String fitnessText = "Fitness: " + fitnessValue + '%';
-        putText(img_matches, fitnessText, Point(5, img1.rows + 20), FONT_HERSHEY_SIMPLEX, 0.5, Scalar(255, 255, 255), 1);
+        putText(img_matches, fitnessText, Point(5, img1.rows - 20), FONT_HERSHEY_SIMPLEX, 0.5, Scalar(255, 255, 255), 1);
         output_file = "output/" + curr_img + dataset_type;
         imwrite(output_file, img_matches);
     }
